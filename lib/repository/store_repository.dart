@@ -20,6 +20,11 @@ class StoreRepository {
     });
 
     print("fetch complete");
-    return stores;
+    return stores
+        .where((e) =>
+            e.remainStat == 'plenty' ||
+            e.remainStat == 'some' ||
+            e.remainStat == 'few')
+        .toList();
   }
 }
