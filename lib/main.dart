@@ -1,12 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:mask_mvvm/model/store.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+import 'package:mask_mvvm/model/store.dart';
+import 'package:mask_mvvm/viewmodel/store_model.dart';
+import 'package:provider/provider.dart';
+
+void main() => runApp(
+      ChangeNotifierProvider.value(
+        value: StoreModel(),
+        child: const MyApp(),
+      ),
+    );
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -31,53 +34,37 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Store> stores = [];
-  bool isLoading = true;
-
-  Future fetch() async {
-    setState(() {
-      isLoading = true;
-    });
-    var url = Uri.parse(
-        'https://gist.githubusercontent.com/junsuk5/bb7485d5f70974deee920b8f0cd1e2f0/raw/063f64d9b343120c2cb01a6555cf9b38761b1d94/sample.json');
-
-    var response = await http.get(url);
-
-    final jsonResult = jsonDecode(utf8.decode(response.bodyBytes));
-
-    final jsonStores = jsonResult['stores'];
-
-    setState(() {
-      stores.clear();
-      jsonStores.forEach((e) {
-        stores.add(Store.fromJson(e));
-      });
-      isLoading = false;
-    });
-
-    print("fetch complete");
-  }
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    fetch();
   }
 
   @override
   Widget build(BuildContext context) {
+    final storeModel = Provider.of<StoreModel>(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            "현재 마스크 파는 ${stores.where((element) => element.remainStat == 'plenty' || element.remainStat == 'some' || element.remainStat == 'few').length} 곳 정보"),
+            "현재 마스크 파는 ${storeModel.stores.where((element) => element.remainStat == 'plenty' || element.remainStat == 'some' || element.remainStat == 'few').length} 곳 정보"),
         actions: [
-          IconButton(onPressed: fetch, icon: const Icon(Icons.refresh))
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              storeModel.fetch().then((value) {
+                setState(() {
+                  storeModel.stores = value;
+                });
+              });
+            },
+          )
         ],
       ),
       body: isLoading
           ? loadingWidget()
           : ListView(
-              children: stores
+              children: storeModel.stores
                   .where((element) =>
                       element.remainStat == 'plenty' ||
                       element.remainStat == 'some' ||
